@@ -49,14 +49,13 @@ char* motionOff = "0";
 char* glightOff = "0";
 char* motionOn = "1";
 char* glightOn = "1";
-char* rgbOff = "0";
-char* rgbOn = "1";
 
 
 //Current states
 bool motionState = false;
 bool rgbState = false;
 bool lightState = false;
+bool networkState = false;
 bool clientState = false;
 
 
@@ -64,14 +63,10 @@ bool clientState = false;
 IRAM_ATTR void detectsMovement() {
   startTimer = true;
   lastTrigger = millis();
-  motionState = 1;
+  motionState = 1;   //Update motion state
   Serial.print("[TRIGGER]MOTION DETECTED at:");
   Serial.println(millis());
-  client.publish("home/stairs/motion", motionOn);
-  digitalWrite(lightPin, HIGH);
-  lightState = 1;
-  Serial.print("[TRIGGER]Turning guide lights: ON");
-  client.publish("home/stairs/guideLight", glightOn);
+  client.publish(motionTopic, motionOn);
 }
 
 void setup_wifi() {
@@ -85,12 +80,14 @@ void setup_wifi() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+    networkState = 0;
   }
-
+  
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  networkState = 1;
   
 }
 
@@ -145,7 +142,6 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.print(g);
     Serial.print(", ");
     Serial.print(b);
-    
   }
 }
 
@@ -179,8 +175,8 @@ void reconnect() {
   while (!client.connected()) {
     Serial.println("###Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("test_ELSA8266")) {
-      Serial.println("+++ELSA8266+++ connected");
+    if (client.connect("stairsRGB")) {
+      Serial.println("stairsRGB connected");
       // Subscribe
       client.subscribe("home/#");
       clientState = 1;
