@@ -10,6 +10,7 @@ Motion triggers light and RGB control
 #include <WiFiUdp.h>
 #include <PubSubClient.h>
 #include <time.h>
+#include <stdio.h>
 
 // Replace the next variables with your SSID/Password combination
 char* ssid = "YOUR_SSID_HERE";
@@ -20,6 +21,9 @@ const char* mqtt_server = "MQTT_SERVER_IP";
 //const char* mqtt_server = "localhost";
 
 #define timeSeconds 10
+
+//Name of the module -- client
+const char* CLIENTNAME = "stairsRGB";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -175,8 +179,8 @@ void reconnect() {
   while (!client.connected()) {
     Serial.println("###Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("stairsRGB")) {
-      Serial.println("stairsRGB connected");
+    if (client.connect(CLIENTNAME)) {
+      Serial.printf("Client: %s connected!\n", CLIENTNAME);
       // Subscribe
       client.subscribe("home/#");
       clientState = 1;
