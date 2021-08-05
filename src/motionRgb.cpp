@@ -10,7 +10,7 @@ Motion triggers light and RGB control
 #include <WiFiUdp.h>
 #include <PubSubClient.h>
 #include <time.h>
-#include <stdio.h>
+#include <IRremote.h>
 
 // Replace the next variables with your SSID/Password combination
 char* ssid = "YOUR_SSID_HERE";
@@ -35,7 +35,7 @@ int value = 0;
 // Set GPIOs for LED and PIR Motion Sensor
 const int lightPin = 3;    //
 const int motionPin = 2;  //D4
-const int irPin = 16;   //D0
+const int irPin = 16;     //D0
 
 // Timer: Auxiliary variables
 unsigned long now = millis();
@@ -56,15 +56,15 @@ char* glightOn = "1";
 
 
 //Current states
-bool motionState = false;
-bool rgbState = false;
-bool lightState = false;
-bool networkState = false;
-bool clientState = false;
+bool motionState = 0;
+bool rgbState = 0;
+bool lightState = 0;
+bool networkState = 0;
+bool clientState = 0;
 
 
 // Checks if motion was detected, sets LED HIGH and starts a timer
-IRAM_ATTR void detectsMovement() {
+ICACHE_RAM_ATTR void detectsMovement() {
   startTimer = true;
   lastTrigger = millis();
   motionState = 1;   //Update motion state
@@ -119,12 +119,12 @@ void callback(char* topic, byte* message, unsigned int length) {
     if(messageTemp == "1"){
       Serial.println("ON");
       lightState = 1;
-      digitalWrite(lightPin, HIGH);
+      digitalWrite(lightPin, lightState);
     }
     else if(messageTemp == "0"){
       Serial.println("OFF");
       lightState = 0;
-      digitalWrite(lightPin, LOW);
+      digitalWrite(lightPin, lightState);
     }
   }
   
