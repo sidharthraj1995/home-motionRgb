@@ -22,6 +22,13 @@ const char* mqtt_server = "MQTT_SERVER_IP";
 
 #define timeSeconds 10
 
+// Topics
+#define clientTopic "home/stairs/client"
+#define motionTopic "home/stairs/motion"
+#define lightTopic  "home/stairs/bulb"
+#define rgbTopic    "home/stairs/rgbColor"
+#define irTopic     "home/stairs/irled"
+
 //Name of the module -- client
 const char* CLIENTNAME = "stairsRGB";
 
@@ -33,9 +40,9 @@ char msg[50];
 int value = 0;
 
 // Set GPIOs for LED and PIR Motion Sensor
-const int lightPin = 3;    //
-const int motionPin = 2;  //D4
-const int irPin = 16;     //D0
+const int lightPin = 3;     //
+const int motionPin = 2;    //D4
+const int irledPin = 12;    //D6
 
 // Timer: Auxiliary variables
 unsigned long now = millis();
@@ -43,10 +50,11 @@ unsigned long lastTrigger = 0;
 boolean startTimer = false;
 
 //Topics
-const char* clientTopic = "home/stairs/client";
-const char* motionTopic = "home/stairs/motion";
-const char* lightTopic = "home/stairs/bulb";
-const char* rgbTopic = "home/stairs/rgbColor";
+// const char* clientTopic = "home/stairs/client";
+// const char* motionTopic = "home/stairs/motion";
+// const char* lightTopic  = "home/stairs/bulb";
+// const char* rgbTopic    = "home/stairs/rgbColor";
+// const char* irTopic     = "home/stairs/irled";
 
 //Topic messages
 char* motionOff = "0";
@@ -59,9 +67,12 @@ char* glightOn = "1";
 bool motionState = 0;
 bool rgbState = 0;
 bool lightState = 0;
+bool irState = 0;
 bool networkState = 0;
 bool clientState = 0;
 
+//Create an IR send object
+IRsend irsend;
 
 // Checks if motion was detected, sets LED HIGH and starts a timer
 ICACHE_RAM_ATTR void detectsMovement() {
@@ -92,7 +103,6 @@ void setup_wifi() {
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
   networkState = 1;
-  
 }
 
 void callback(char* topic, byte* message, unsigned int length) {
@@ -111,9 +121,7 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial.print("***");
   Serial.println();
 
-
-
-/////////Controlling Stairs Bulb//////////////////////////////////////
+  //Command for Light
   if (String(topic) == lightTopic) {
     Serial.println("[ACK]Turning Stair bulb: ");
     if(messageTemp == "1"){
@@ -128,7 +136,7 @@ void callback(char* topic, byte* message, unsigned int length) {
     }
   }
   
-/////////Controlling RGB light//////////////////////////////////////
+  //Command for RGB Color
   if (String(topic) == rgbTopic){
     
     Serial.print("[ACK]RGB received: ");
@@ -147,31 +155,6 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.print(", ");
     Serial.print(b);
   }
-}
-
-
-
-void setup() {
-  // Serial port for debugging purposes
-  Serial.begin(115200);
-  
-  // PIR Motion Sensor mode INPUT_PULLUP
-  pinMode(motionPin, INPUT_PULLUP);
-  // Set motionSensor pin as interrupt, assign interrupt function and set RISING mode
-  attachInterrupt(digitalPinToInterrupt(motionPin), detectsMovement, RISING);
-
-  // Configure IOs
-  pinMode(lightPin, OUTPUT);
-  pinMode(irPin, OUTPUT);
-
-  //Set States to LOW
-  digitalWrite(lightPin, LOW);
-  digitalWrite(irPin, LOW);
-
-  setup_wifi();
-  client.setServer(mqtt_server, 1024);
-  client.setCallback(callback);
-
 }
 
 void reconnect() {
@@ -196,11 +179,39 @@ void reconnect() {
 }
 
 
+void setup() {
+  // Serial port for debugging purposes
+  Serial.begin(115200);
+  
+  // PIR Motion Sensor mode INPUT_PULLUP
+  pinMode(motionPin, INPUT_PULLUP);
+  // Set motionSensor pin as interrupt, assign interrupt function and set RISING mode
+  attachInterrupt(digitalPinToInterrupt(motionPin), detectsMovement, RISING);
+
+  // Configure IOs
+  pinMode(lightPin, OUTPUT);
+  pinMode(irledPin, OUTPUT);
+
+  //Set States to LOW
+  digitalWrite(lightPin, lightState);
+  digitalWrite(irledPin, irState);
+
+  setup_wifi();
+  client.setServer(mqtt_server, 1024);
+  client.setCallback(callback);
+
+  // Initializes IR sender
+  //irsend.begin(irledPin); 
+}
+
 void loop() {
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
+
+  // the address 0x0102 with the command 0x34 is sent 
+  IrSender.sendNEC(0x0102, 0x34, true, 0); 
 
   // Current time
   now = millis();
